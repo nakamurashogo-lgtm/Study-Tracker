@@ -57,13 +57,7 @@
     };
     const SUBJECTS = Object.keys(SUBJECT_COLORS);
 
-    const INITIAL_MATERIALS = [
-      { id: 'm1', name: 'システム英単語', subject: '英語' },
-      { id: 'm2', name: '青チャート', subject: '数学' },
-      { id: 'm3', name: '現代文キーワード読解', subject: '国語' },
-      { id: 'm4', name: '物理のエッセンス', subject: '理科' },
-      { id: 'm5', name: '日本史B 一問一答', subject: '社会' },
-    ];
+    const INITIAL_MATERIALS = [];
 
     const DEFAULT_WEEKLY_GOAL_HOURS = 20;
 
@@ -102,30 +96,6 @@
     const Icon = ({ name, size = 24, className = '', ...props }) => {
       useEffect(() => { lucide.createIcons(); });
       return <i data-lucide={name} style={{ width: size, height: size }} className={className} {...props}></i>;
-    };
-
-    const generateMockData = (materials) => {
-      const data = [];
-      const today = new Date();
-      for (let i = 35; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = getLocalDateString(date);
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-        const numSessions = isWeekend ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 3);
-        
-        for (let j = 0; j < numSessions; j++) {
-          const material = materials[Math.floor(Math.random() * materials.length)];
-          data.push({
-            id: `mock-${i}-${j}`,
-            date: dateStr,
-            materialId: material.id,
-            duration: Math.floor(Math.random() * 5400) + 1800,
-            timestamp: date.getTime() + j * 10000,
-          });
-        }
-      }
-      return data;
     };
 
     // --- カスタムチャートコンポーネント (Rechartsの代替) ---
@@ -230,12 +200,10 @@
     function App() {
       const [activeTab, setActiveTab] = useState('dashboard');
       const [materials, setMaterials] = useState(INITIAL_MATERIALS);
-      const [records, setRecords] = useState(() => generateMockData(INITIAL_MATERIALS));
+      const [records, setRecords] = useState([]);
       const [weeklyGoalHours, setWeeklyGoalHours] = useState(DEFAULT_WEEKLY_GOAL_HOURS);
 
-      const [events, setEvents] = useState([
-        { id: 'ev1', date: getLocalDateString(new Date()), title: '英語 小テスト', color: '#ef4444' }
-      ]);
+      const [events, setEvents] = useState([]);
 
       const [isRunning, setIsRunning] = useState(false);
       const [seconds, setSeconds] = useState(0);
