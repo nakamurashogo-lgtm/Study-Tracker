@@ -2,8 +2,15 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study Tracker - 学習記録アプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Study Tracker</title>
+  
+  <!-- アプリアイコンの設定（ここを追加しました） -->
+  <link rel="icon" href="./icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="学習記録">
   
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -170,13 +177,12 @@
           const labels = ['今週', '先週', '2週前', '3週前'];
           for(let i=0; i<4; i++) {
             const now = new Date();
-            // 月曜始まり（日曜日は6, 月曜は0になるように調整）
             const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
             
             const endOfWeek = new Date(now);
-            endOfWeek.setDate(now.getDate() - dayOfWeek + 6 - (i * 7)); // その週の日曜日
+            endOfWeek.setDate(now.getDate() - dayOfWeek + 6 - (i * 7));
             const startOfWeek = new Date(endOfWeek);
-            startOfWeek.setDate(endOfWeek.getDate() - 6); // その週の月曜日
+            startOfWeek.setDate(endOfWeek.getDate() - 6);
             
             const startStr = getLocalDateString(startOfWeek);
             const endStr = getLocalDateString(endOfWeek);
@@ -346,7 +352,7 @@
 
     // --- 2. 記録・タイマー ---
     function Record({ materials, addRecord }) {
-      const [mode, setMode] = useState('timer'); // 'timer' または 'manual'
+      const [mode, setMode] = useState('timer');
       const [time, setTime] = useState(0);
       const [isRunning, setIsRunning] = useState(false);
       const [selectedMaterialId, setSelectedMaterialId] = useState('');
@@ -586,26 +592,21 @@
 
     // --- 5. 設定・提出 ---
     function Settings({ records, setRecords, materials, setMaterials, events, setEvents, goal, setGoal }) {
-      const [copiedType, setCopiedType] = useState(null); // 'current' or 'prev'
+      const [copiedType, setCopiedType] = useState(null);
 
-      // 指定した週（オフセット）の月曜〜日曜の範囲を取得
       const getWeekRange = (offsetWeeks = 0) => {
         const now = new Date();
-        const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1; // 月曜=0
-        
+        const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
         const start = new Date(now);
-        start.setDate(now.getDate() - dayOfWeek + (offsetWeeks * 7)); // 月曜日
-        
+        start.setDate(now.getDate() - dayOfWeek + (offsetWeeks * 7));
         const end = new Date(start);
-        end.setDate(start.getDate() + 6); // 日曜日
-        
+        end.setDate(start.getDate() + 6);
         return { start, end };
       };
 
       const handleCopyReport = (targetWeek) => {
         const offset = targetWeek === 'current' ? 0 : -1;
         const { start, end } = getWeekRange(offset);
-        
         const startStr = getLocalDateString(start);
         const endStr = getLocalDateString(end);
 
@@ -613,18 +614,14 @@
         const subjectSec = {};
         SUBJECTS.forEach(s => subjectSec[s] = 0);
 
-        // 指定期間内の記録のみ集計
         records.forEach(r => {
           const rDate = getLocalDateString(r.date);
           if (rDate >= startStr && rDate <= endStr) {
             totalSec += r.durationSeconds;
             const mat = materials.find(m => m.id === r.materialId);
             const sub = mat ? mat.subject : 'その他';
-            if (subjectSec[sub] !== undefined) {
-               subjectSec[sub] += r.durationSeconds;
-            } else {
-               subjectSec['その他'] += r.durationSeconds;
-            }
+            if (subjectSec[sub] !== undefined) subjectSec[sub] += r.durationSeconds;
+            else subjectSec['その他'] += r.durationSeconds;
           }
         });
 
@@ -644,10 +641,7 @@
           }
         });
 
-        if (!hasSubject) {
-          report += "  (学習記録なし)\n";
-        }
-        
+        if (!hasSubject) report += "  (学習記録なし)\n";
         report += `\n#StudyTracker`;
 
         const ta = document.createElement("textarea");
@@ -656,8 +650,7 @@
           document.execCommand('copy'); 
           setCopiedType(targetWeek); 
           setTimeout(() => setCopiedType(null), 2500); 
-        } 
-        catch (err) { alert('コピーに失敗しました'); } 
+        } catch (err) { alert('コピーに失敗しました'); } 
         finally { document.body.removeChild(ta); }
       };
 
