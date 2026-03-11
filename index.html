@@ -282,8 +282,8 @@
             </button>
             <span className="text-sm font-bold text-slate-600 tracking-wide">
               {view === 'daily' 
-                ? `${chartData[0].label.split('(')[0]} ? ${chartData[chartData.length-1].label.split('(')[0]}`
-                : `${offset === 0 ? '直近5週間' : `${chartData[0].label} ? ${chartData[chartData.length-1].label}`}`
+                ? `${chartData[0].label.split('(')[0]} ～ ${chartData[chartData.length-1].label.split('(')[0]}`
+                : `${offset === 0 ? '直近5週間' : `${chartData[0].label} ～ ${chartData[chartData.length-1].label}`}`
               }
             </span>
             <button onClick={handleNext} disabled={offset === 0} className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${offset === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-slate-200'}`}>
@@ -838,7 +838,7 @@
         });
 
         // フォーム用のURL組み立て
-        let url = `https://docs.google.com/forms/d/e/1FAIpQLScLTYwuG2p0nXrrSkfoTH08moCs4tgwrQJKwym4F2ylohHDug/viewform?usp=pp_url&entry.1119124569=grade&entry.183805390=classnum&entry.381405597=studentnum&entry.322289790=name&entry.1196976546=total&entry.1599272747=english&entry.491252079=japanese&entry.301365365=math&entry.1971877324=science&entry.1130548948=social&entry.1068639816=other`;
+        let url = `https://docs.google.com/forms/d/e/1FAIpQLScLTYwuG2p0nXrrSkfoTH08moCs4tgwrQJKwym4F2ylohHDug/viewform?usp=pp_url&entry.1119124569=grade&entry.183805390=classnum&entry.381405597=studentnum&entry.322289790=name&entry.1196976546=total&entry.1599272747=english&entry.491252079=japanese&entry.301365365=math&entry.1971877324=science&entry.1130548948=social&entry.1068639816=other?usp=pp_url`;
 
         // ③ プロフィールのパラメータ追加
         if (userProfile.grade) url += `&entry.1119124569=${encodeURIComponent(userProfile.grade)}`;
