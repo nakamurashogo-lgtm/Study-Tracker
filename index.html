@@ -21,7 +21,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
@@ -44,19 +44,20 @@
     };
     const SUBJECTS = Object.keys(SUBJECT_COLORS);
 
-    // 追加: イベントのカラーパレット（10色）
+    // 新しい12色のイベントカラーパレット
     const EVENT_COLORS = [
       { id: 'red', color: '#ef4444', label: '赤' },
       { id: 'pink', color: '#ec4899', label: 'ピンク' },
-  　　 { id: 'orange', color: '#f97316', label: 'オレンジ' },
-      { id: 'yellow', color: '#eab308', label: '黄色' },
-         { id: 'green', color: '#22c55e', label: '緑' },
-      { id: 'lime', color: '#84cc16', label: '黄緑' },
       { id: 'blue', color: '#3b82f6', label: '青' },
-      { id: 'cyan', color: '#06b6d4', label: '水色' },
-      { id: 'purple', color: '#a855f7', label: '薄い紫' },
+      { id: 'cyan', color: '#0ea5e9', label: '水色' },
+      { id: 'green', color: '#22c55e', label: '緑' },
+      { id: 'lime', color: '#84cc16', label: '黄緑' },
+      { id: 'orange', color: '#f97316', label: 'オレンジ' },
+      { id: 'yellow', color: '#eab308', label: '黄色' },
+      { id: 'purple', color: '#9333ea', label: '紫' },
+      { id: 'lightpurple', color: '#d8b4fe', label: '薄紫' },
       { id: 'gray', color: '#64748b', label: 'グレー' },
-     
+      { id: 'black', color: '#0f172a', label: '黒' },
     ];
     
     const STORAGE_PREFIX = 'study_tracker_v3_';
@@ -437,11 +438,15 @@
     function Calendar({ records, materials, events, setEvents }) {
       const [currentDate, setCurrentDate] = useState(new Date());
       
-      // モーダル用State
+      // 追加用モーダルState
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [newEventTitle, setNewEventTitle] = useState('');
+      const [newEventDesc, setNewEventDesc] = useState('');
       const [newEventDate, setNewEventDate] = useState(getLocalDateString(new Date()));
       const [newEventColor, setNewEventColor] = useState(EVENT_COLORS[0].color);
+
+      // 詳細・編集・削除用モーダルState
+      const [selectedEvent, setSelectedEvent] = useState(null);
 
       const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -452,6 +457,7 @@
       const openEventModal = (dateStr) => {
         setNewEventDate(dateStr || getLocalDateString(new Date()));
         setNewEventTitle('');
+        setNewEventDesc('');
         setNewEventColor(EVENT_COLORS[0].color);
         setIsModalOpen(true);
       };
@@ -460,13 +466,28 @@
       const addEvent = (e) => {
         e.preventDefault();
         if(!newEventTitle) return;
-        setEvents([...events, { id: Date.now().toString(), title: newEventTitle, date: newEventDate, color: newEventColor }]);
+        setEvents([...events, { 
+          id: Date.now().toString(), 
+          title: newEventTitle, 
+          description: newEventDesc,
+          date: newEventDate, 
+          color: newEventColor 
+        }]);
         closeEventModal();
       };
 
-      const deleteEvent = (id, e) => { 
-        e.stopPropagation(); // セルの長押しイベント発火を防ぐ
-        if(confirm('予定を削除しますか？')) setEvents(events.filter(ev => ev.id !== id)); 
+      // 詳細モーダルから予定を削除
+      const deleteEvent = (id) => { 
+        if(confirm('この予定を削除しますか？')) {
+          setEvents(events.filter(ev => ev.id !== id)); 
+          setSelectedEvent(null);
+        }
+      };
+
+      // 予定をクリックしたときの処理（詳細モーダルを開く）
+      const handleEventClick = (ev, e) => {
+        e.stopPropagation(); // セルのクリックや長押しをキャンセル
+        setSelectedEvent(ev);
       };
 
       // 長押しイベントロジック
@@ -512,10 +533,10 @@
                 {dayEvents.map(ev => (
                   <div 
                     key={ev.id} 
-                    className="text-[11px] md:text-xs text-white px-2 py-1 md:py-1.5 rounded-md truncate font-bold cursor-pointer hover:opacity-80 shadow-sm leading-tight transition-transform active:scale-95" 
-                    style={{backgroundColor: ev.color}} 
-                    onClick={(e)=>deleteEvent(ev.id, e)}
-                    title={`${ev.title} (クリックで削除)`}
+                    className="text-[11px] md:text-xs text-white px-2 py-1.5 rounded-md truncate font-bold cursor-pointer hover:opacity-80 shadow-sm leading-tight transition-transform active:scale-95" 
+                    style={{backgroundColor: ev.color, color: ev.color === '#eab308' || ev.color === '#84cc16' ? '#1e293b' : 'white'}} // 薄い色の場合は文字を濃く
+                    onClick={(e) => handleEventClick(ev, e)}
+                    title={ev.title}
                   >
                     {ev.title}
                   </div>
@@ -552,18 +573,24 @@
               <h3 className="text-lg md:text-xl font-black text-slate-800">{currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月</h3>
               <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"><Icon name="chevron-right" /></button>
             </div>
-            <div className="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-2">
-              <div className="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div className="text-blue-500">土</div>
-            </div>
-            <div className="grid grid-cols-7 bg-slate-200 gap-px border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              {renderCalendarGrid()}
+            
+            {/* カレンダーの幅を広げ、はみ出る場合は横スクロールにする */}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+              <div className="min-w-[700px]">
+                <div className="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-2">
+                  <div className="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div className="text-blue-500">土</div>
+                </div>
+                <div className="grid grid-cols-7 bg-slate-200 gap-px border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  {renderCalendarGrid()}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* 予定追加モーダル */}
           {isModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-              <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl transform transition-all">
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200" onMouseDown={closeEventModal}>
+              <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onMouseDown={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <Icon name="calendar-plus" size={24} className="text-indigo-500"/> 予定を追加
@@ -573,7 +600,7 @@
                   </button>
                 </div>
                 
-                <form onSubmit={addEvent} className="space-y-6">
+                <form onSubmit={addEvent} className="space-y-5">
                   <div>
                     <label className="block text-sm font-bold text-slate-600 mb-2">日付</label>
                     <input type="date" value={newEventDate} onChange={e=>setNewEventDate(e.target.value)} className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-indigo-400 transition-colors" required />
@@ -582,6 +609,17 @@
                   <div>
                     <label className="block text-sm font-bold text-slate-600 mb-2">タイトル</label>
                     <input type="text" placeholder="例: 英語テスト" value={newEventTitle} onChange={e=>setNewEventTitle(e.target.value)} className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold outline-none focus:border-indigo-400 transition-colors" required autoFocus />
+                  </div>
+
+                  {/* 新規追加：内容（メモ）入力 */}
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">内容・メモ (任意)</label>
+                    <textarea 
+                      placeholder="範囲や持ち物など" 
+                      value={newEventDesc} 
+                      onChange={e=>setNewEventDesc(e.target.value)} 
+                      className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-indigo-400 transition-colors min-h-[80px]" 
+                    />
                   </div>
 
                   <div>
@@ -596,7 +634,7 @@
                           style={{ backgroundColor: c.color }}
                           title={c.label}
                         >
-                          {newEventColor === c.color && <Icon name="check" size={20} className="text-white drop-shadow-sm" />}
+                          {newEventColor === c.color && <Icon name="check" size={20} className={c.color === '#eab308' || c.color === '#84cc16' ? 'text-slate-800' : 'text-white'} />}
                         </button>
                       ))}
                     </div>
@@ -609,6 +647,44 @@
               </div>
             </div>
           )}
+
+          {/* 予定の詳細・削除用モーダル */}
+          {selectedEvent && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200" onMouseDown={() => setSelectedEvent(null)}>
+              <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl relative" onMouseDown={e => e.stopPropagation()}>
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-3 pr-4">
+                    <div className="w-5 h-5 rounded-full shadow-inner flex-shrink-0" style={{backgroundColor: selectedEvent.color}}></div>
+                    <h3 className="text-xl font-bold text-slate-800 leading-tight">{selectedEvent.title}</h3>
+                  </div>
+                  <button onClick={() => setSelectedEvent(null)} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors flex-shrink-0">
+                    <Icon name="x" size={20} />
+                  </button>
+                </div>
+                
+                <div className="mb-8 space-y-5 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1.5"><Icon name="calendar" size={14}/> 日付</p>
+                    <p className="text-slate-800 font-bold">{selectedEvent.date.replace(/-/g, '/')}</p>
+                  </div>
+                  
+                  {selectedEvent.description && (
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1.5"><Icon name="align-left" size={14}/> 内容</p>
+                      <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">{selectedEvent.description}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button onClick={() => deleteEvent(selectedEvent.id)} className="flex items-center justify-center gap-2 w-full text-red-600 bg-red-50 hover:bg-red-100 py-3.5 rounded-xl font-bold transition-colors">
+                    <Icon name="trash-2" size={18} /> この予定を削除する
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       );
     }
