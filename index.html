@@ -849,14 +849,14 @@
         if (userProfile.studentNum) url += `&entry.381405597=${encodeURIComponent(userProfile.studentNum)}`;
         if (userProfile.name) url += `&entry.322289790=${encodeURIComponent(userProfile.name)}`;
 
-        // 学習時間のパラメータ追加 (単位を「時間(小数点第1位)」で渡す)
-        url += `&entry.1196976546=${(totalSec / 3600).toFixed(1)}`;
-        url += `&entry.1599272747=${(subjectSec['英語'] / 3600).toFixed(1)}`;
-        url += `&entry.491252079=${(subjectSec['国語'] / 3600).toFixed(1)}`;
-        url += `&entry.301365365=${(subjectSec['数学'] / 3600).toFixed(1)}`;
-        url += `&entry.1971877324=${(subjectSec['理科'] / 3600).toFixed(1)}`;
-        url += `&entry.1130548948=${(subjectSec['社会'] / 3600).toFixed(1)}`;
-        url += `&entry.1068639816=${(subjectSec['その他'] / 3600).toFixed(1)}`;
+        // 学習時間のパラメータ追加 (単位を「分」で渡す)
+        url += `&entry.1196976546=${Math.round(totalSec / 60)}`;
+        url += `&entry.1599272747=${Math.round(subjectSec['英語'] / 60)}`;
+        url += `&entry.491252079=${Math.round(subjectSec['国語'] / 60)}`;
+        url += `&entry.301365365=${Math.round(subjectSec['数学'] / 60)}`;
+        url += `&entry.1971877324=${Math.round(subjectSec['理科'] / 60)}`;
+        url += `&entry.1130548948=${Math.round(subjectSec['社会'] / 60)}`;
+        url += `&entry.1068639816=${Math.round(subjectSec['その他'] / 60)}`;
 
         window.open(url, '_blank');
       };
