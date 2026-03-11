@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
-  <title>柏崎高校　Study Log</title>
+  <title>Study Log</title>
   
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="apple-touch-icon" href="icon.png">
@@ -12,7 +12,7 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="柏崎高校　Study Log">
+  <meta name="apple-mobile-web-app-title" content="Study Log">
   
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -553,10 +553,20 @@
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [newEventTitle, setNewEventTitle] = useState('');
       const [newEventDesc, setNewEventDesc] = useState('');
-      const [newEventNotes, setNewEventNotes] = useState(''); // 備考欄追加
+      const [newEventNotes, setNewEventNotes] = useState(''); 
       const [newEventDate, setNewEventDate] = useState(getLocalDateString(new Date()));
       const [newEventColor, setNewEventColor] = useState(EVENT_COLORS[0].color);
       const [selectedEvent, setSelectedEvent] = useState(null);
+      
+      const [holidays, setHolidays] = useState({}); // 祝日データを保存するstate
+
+      // 祝日データの取得
+      useEffect(() => {
+        fetch('https://holidays-jp.github.io/api/v1/date.json')
+          .then(res => res.json())
+          .then(data => setHolidays(data))
+          .catch(err => console.error('祝日データの取得に失敗しました', err));
+      }, []);
       
       const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -566,7 +576,7 @@
         setNewEventDate(dateStr || getLocalDateString(new Date())); 
         setNewEventTitle(''); 
         setNewEventDesc(''); 
-        setNewEventNotes(''); // リセット
+        setNewEventNotes(''); 
         setNewEventColor(EVENT_COLORS[0].color); 
         setIsModalOpen(true);
       };
@@ -580,7 +590,7 @@
           id: Date.now().toString(), 
           title: newEventTitle, 
           description: newEventDesc, 
-          notes: newEventNotes, // 追加
+          notes: newEventNotes, 
           date: newEventDate, 
           color: newEventColor 
         }]);
@@ -619,17 +629,38 @@
           let dayTotalSec = 0; dayRecords.forEach(r => dayTotalSec += r.durationSeconds);
           const isToday = dateStr === getLocalDateString(new Date());
 
+          const dayOfWeek = dateObj.getDay();
+          const holidayName = holidays[dateStr];
+          
+          let cellBgClass = 'bg-white';
+          let cellHoverClass = 'hover:bg-slate-50';
+          let dayTextColor = 'text-slate-600';
+
+          if (dayOfWeek === 0 || holidayName) { // 日曜 または 祝日
+            cellBgClass = 'bg-red-50';
+            cellHoverClass = 'hover:bg-red-100';
+            dayTextColor = 'text-red-500';
+          } else if (dayOfWeek === 6) { // 土曜
+            cellBgClass = 'bg-blue-50';
+            cellHoverClass = 'hover:bg-blue-100';
+            dayTextColor = 'text-blue-500';
+          }
+
           days.push(
             <div 
-              key={d} className={`no-callout p-1.5 md:p-2.5 border border-slate-100 min-h-[110px] md:min-h-[140px] flex flex-col bg-white relative transition-colors hover:bg-slate-50 cursor-pointer ${isToday ? 'ring-2 ring-indigo-400 ring-inset bg-indigo-50/20' : ''}`}
+              key={d} className={`no-callout p-1.5 md:p-2.5 border border-slate-100 min-h-[110px] md:min-h-[140px] flex flex-col relative transition-colors cursor-pointer ${cellBgClass} ${cellHoverClass} ${isToday ? 'ring-2 ring-indigo-400 ring-inset' : ''}`}
               onMouseDown={(e) => handlePointerDown(e, dateStr)} onMouseUp={handlePointerUp} onMouseLeave={handlePointerUp} onTouchStart={(e) => handlePointerDown(e, dateStr)} onTouchEnd={handlePointerUp} onTouchMove={handlePointerUp}
             >
-              <span className={`text-xs md:text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full mb-1.5 ${isToday ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'}`}>{d}</span>
+              <div className="flex justify-between items-start mb-1.5">
+                <span className={`text-xs md:text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 ${isToday ? 'bg-indigo-600 text-white shadow-sm' : dayTextColor}`}>{d}</span>
+                {holidayName && <span className="text-[9px] md:text-[10px] text-red-500 font-bold ml-1 truncate text-right mt-1 leading-tight">{holidayName}</span>}
+              </div>
+              
               <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 pointer-events-auto">
                 {dayEvents.map(ev => (
                   <div key={ev.id} className="text-[11px] md:text-xs text-white px-2 py-1.5 rounded-md truncate font-bold cursor-pointer hover:opacity-80 shadow-sm leading-tight transition-transform active:scale-95" style={{backgroundColor: ev.color, color: ev.color === '#eab308' || ev.color === '#84cc16' ? '#1e293b' : 'white'}} onClick={(e) => handleEventClick(ev, e)} title={ev.title}>{ev.title}</div>
                 ))}
-                {dayTotalSec > 0 && <div className="text-[11px] md:text-xs bg-slate-100 text-slate-600 px-1.5 py-1 rounded-md font-bold text-center mt-auto border border-slate-200">{formatTimeStr(dayTotalSec)}</div>}
+                {dayTotalSec > 0 && <div className="text-[11px] md:text-xs bg-slate-100/80 text-slate-600 px-1.5 py-1 rounded-md font-bold text-center mt-auto border border-slate-200">{formatTimeStr(dayTotalSec)}</div>}
               </div>
             </div>
           );
@@ -695,7 +726,6 @@
                     <label className="block text-sm font-bold text-slate-600 mb-2">内容・メモ (任意)</label>
                     <textarea placeholder="範囲など" value={newEventDesc} onChange={e=>setNewEventDesc(e.target.value)} className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-indigo-400 transition-colors min-h-[60px]" />
                   </div>
-                  {/* ④ 備考欄 */}
                   <div>
                     <label className="block text-sm font-bold text-slate-600 mb-2">備考（準備物や場所） (任意)</label>
                     <textarea placeholder="場所：図書室、持ち物：参考書" value={newEventNotes} onChange={e=>setNewEventNotes(e.target.value)} className="w-full p-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl font-medium outline-none focus:border-indigo-400 transition-colors min-h-[60px]" />
@@ -741,7 +771,6 @@
                       <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">{selectedEvent.description}</p>
                     </div>
                   )}
-                  {/* ④ 備考欄の表示 */}
                   {selectedEvent.notes && (
                     <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100 mt-2">
                       <p className="text-xs font-bold text-indigo-500 mb-1 flex items-center gap-1.5"><Icon name="package" size={14}/> 備考（準備物・場所など）</p>
@@ -877,7 +906,6 @@
         return { start, end };
       };
 
-      // ② Google Formを開く処理 (指定のURLで開く)
       const handleOpenForm = (targetWeek) => {
         const isProfileIncomplete = !userProfile.grade || !userProfile.classNum || !userProfile.studentNum || !userProfile.name;
         if (isProfileIncomplete) {
@@ -894,7 +922,6 @@
         const subjectSec = {}; 
         SUBJECTS.forEach(s => subjectSec[s] = 0);
         
-        // ★前回のバグ修正：「その他」が空っぽにならないよう0をセット
         subjectSec['その他'] = 0; 
         
         records.forEach(r => {
@@ -908,16 +935,13 @@
           }
         });
 
-        // フォーム用のURL組み立て（ベースURL）
         let url = `https://docs.google.com/forms/d/e/1FAIpQLScLTYwuG2p0nXrrSkfoTH08moCs4tgwrQJKwym4F2ylohHDug/viewform?usp=pp_url`;
 
-        // ③ プロフィールのパラメータ追加
         if (userProfile.grade) url += `&entry.1119124569=${encodeURIComponent(userProfile.grade)}`;
         if (userProfile.classNum) url += `&entry.183805390=${encodeURIComponent(userProfile.classNum)}`;
         if (userProfile.studentNum) url += `&entry.381405597=${encodeURIComponent(userProfile.studentNum)}`;
         if (userProfile.name) url += `&entry.322289790=${encodeURIComponent(userProfile.name)}`;
 
-        // 学習時間のパラメータ追加 (単位を「〇時間〇分」で渡す)
         url += `&entry.1196976546=${encodeURIComponent(formatTimeStr(totalSec))}`;
         url += `&entry.1599272747=${encodeURIComponent(formatTimeStr(subjectSec['英語']))}`;
         url += `&entry.491252079=${encodeURIComponent(formatTimeStr(subjectSec['国語']))}`;
@@ -929,7 +953,6 @@
         window.open(url, '_blank');
       };
 
-      // ① 学習記録のみリセット
       const handleResetRecords = () => {
         if(confirm('今までの「学習記録」をすべて削除しますか？\n（教材や予定、設定は残ります。この操作は取り消せません）')) {
           setRecords([]);
@@ -945,7 +968,6 @@
         }
       };
 
-      // ③ データのエクスポート（ローカルバックアップ）
       const exportData = () => {
         const data = { materials, records, events, goal, userProfile };
         const jsonStr = JSON.stringify(data);
@@ -958,7 +980,6 @@
         URL.revokeObjectURL(url);
       };
 
-      // ③ データのインポート（復元）
       const importData = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -977,7 +998,7 @@
           }
         };
         reader.readAsText(file);
-        e.target.value = ''; // Reset input
+        e.target.value = '';
       };
 
       return (
@@ -1018,7 +1039,6 @@
             </div>
           </div>
 
-          {/* ③ データバックアップ・復元機能 (アップデート対応) */}
           <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100">
             <h3 className="text-lg font-bold text-slate-700 mb-2 flex items-center gap-2"><Icon name="download" className="text-indigo-500" /> データ引き継ぎ（バックアップ／復元）</h3>
             <p className="text-sm text-slate-500 mb-6 border-b pb-4">
@@ -1051,7 +1071,6 @@
           <div className="bg-red-50 p-6 rounded-3xl border border-red-100 mt-12 space-y-4">
             <h3 className="font-bold text-red-800 mb-2 flex items-center gap-2"><Icon name="alert-triangle" size={20} className="text-red-600" /> 注意が必要な操作</h3>
             
-            {/* ① 学習記録のリセットボタン */}
             <button onClick={handleResetRecords} className="w-full py-4 rounded-2xl font-bold flex items-center justify-center bg-white border-2 border-red-200 text-red-500 hover:bg-red-100 transition-colors">
               <Icon name="eraser" className="mr-2" size={20} /> 学習記録だけをリセットする
             </button>
