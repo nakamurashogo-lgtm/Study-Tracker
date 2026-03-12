@@ -43,6 +43,18 @@
     };
     const SUBJECTS = Object.keys(SUBJECT_COLORS);
 
+    // --- 成績管理用の細分化された科目設定 ---
+    const GRADE_SUBJECT_COLORS = {
+      '英語': '#a855f7',
+      '現代文': '#ec4899', '古文': '#f472b6', '漢文': '#be185d',
+      '数学I': '#93c5fd', '数学II': '#60a5fa', '数学III': '#3b82f6', '数学A': '#2563eb', '数学B': '#1d4ed8', '数学C': '#1e3a8a',
+      '物理基礎': '#bbf7d0', '物理': '#86efac', '化学基礎': '#4ade80', '化学': '#22c55e', '生物基礎': '#16a34a', '生物': '#15803d', '地学基礎': '#059669', '地学': '#047857',
+      '歴史総合': '#fef08a', '日本史': '#fdba74', '世界史': '#fb923c', '地理総合': '#fde047', '地理': '#f97316', '公共': '#ea580c', '倫理': '#c2410c', '政経': '#9a3412',
+      '情報': '#2dd4bf',
+      'その他': '#9ca3af',
+    };
+    const GRADE_SUBJECTS = Object.keys(GRADE_SUBJECT_COLORS);
+
     const EVENT_COLORS = [
       { id: 'red', color: '#ef4444', label: '赤' },
       { id: 'pink', color: '#ec4899', label: 'ピンク' },
@@ -220,7 +232,7 @@
         e.preventDefault();
         if (!newTitle) return;
         const scores = {};
-        SUBJECTS.forEach(sub => {
+        GRADE_SUBJECTS.forEach(sub => {
           const s = parseInt(newScores[sub]);
           if (!isNaN(s) && s >= 0 && s <= 100) scores[sub] = s;
         });
@@ -256,11 +268,11 @@
       const graphHeight = svgHeight - paddingY * 2;
 
       const points = {};
-      SUBJECTS.forEach(sub => points[sub] = []);
+      GRADE_SUBJECTS.forEach(sub => points[sub] = []);
 
       currentGrades.forEach((g, i) => {
         const x = currentGrades.length === 1 ? svgWidth / 2 : paddingX + (i / (currentGrades.length - 1)) * graphWidth;
-        SUBJECTS.forEach(sub => {
+        GRADE_SUBJECTS.forEach(sub => {
           if (g.scores[sub] !== undefined) {
             const y = paddingY + graphHeight - (g.scores[sub] / 100) * graphHeight;
             points[sub].push({x, y, score: g.scores[sub], title: g.title});
@@ -293,14 +305,14 @@
                   ))}
                   
                   {/* 各教科の折れ線と点 */}
-                  {SUBJECTS.map(sub => {
+                  {GRADE_SUBJECTS.map(sub => {
                     if (points[sub].length === 0) return null;
                     const pathD = `M ${points[sub].map(p => `${p.x},${p.y}`).join(' L ')}`;
                     return (
                       <g key={sub}>
-                        <path d={pathD} fill="none" stroke={SUBJECT_COLORS[sub]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 hover:opacity-100 transition-opacity" />
+                        <path d={pathD} fill="none" stroke={GRADE_SUBJECT_COLORS[sub]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-80 hover:opacity-100 transition-opacity" />
                         {points[sub].map((p, i) => (
-                          <circle key={i} cx={p.x} cy={p.y} r="5" fill={SUBJECT_COLORS[sub]} stroke="#fff" strokeWidth="2" className="cursor-pointer">
+                          <circle key={i} cx={p.x} cy={p.y} r="5" fill={GRADE_SUBJECT_COLORS[sub]} stroke="#fff" strokeWidth="2" className="cursor-pointer">
                             <title>{p.title}&#10;{sub}: {p.score}点</title>
                           </circle>
                         ))}
@@ -327,9 +339,9 @@
 
             {/* 凡例 */}
             <div className="flex flex-wrap gap-4 mt-6 justify-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              {SUBJECTS.map(sub => (
+              {GRADE_SUBJECTS.map(sub => (
                 <div key={sub} className="flex items-center gap-1.5">
-                  <span className="w-3.5 h-3.5 rounded-full shadow-sm" style={{backgroundColor: SUBJECT_COLORS[sub]}}></span>
+                  <span className="w-3.5 h-3.5 rounded-full shadow-sm" style={{backgroundColor: GRADE_SUBJECT_COLORS[sub]}}></span>
                   <span className="text-xs font-bold text-slate-700">{sub}</span>
                 </div>
               ))}
@@ -355,10 +367,10 @@
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-2">各教科の得点 (0〜100)</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {SUBJECTS.map(sub => (
+                  {GRADE_SUBJECTS.map(sub => (
                     <div key={sub} className="flex items-center bg-slate-50 border-2 border-slate-100 rounded-xl px-3 focus-within:border-indigo-400 transition-colors">
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 mr-2" style={{backgroundColor: SUBJECT_COLORS[sub]}}></span>
-                      <span className="text-sm font-bold text-slate-600 w-12">{sub}</span>
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 mr-2" style={{backgroundColor: GRADE_SUBJECT_COLORS[sub]}}></span>
+                      <span className="text-sm font-bold text-slate-600 w-16 whitespace-nowrap">{sub}</span>
                       <input type="number" min="0" max="100" placeholder="-" value={newScores[sub] || ''} onChange={e=>handleScoreChange(sub, e.target.value)} className="w-full p-2 bg-transparent font-bold outline-none text-right" />
                     </div>
                   ))}
@@ -383,9 +395,9 @@
                       <div className="font-bold text-slate-700">{g.title}</div>
                     </div>
                     <div className="flex flex-wrap gap-2 md:gap-4 items-center flex-1 md:justify-end">
-                      {SUBJECTS.map(sub => g.scores[sub] !== undefined && (
+                      {GRADE_SUBJECTS.map(sub => g.scores[sub] !== undefined && (
                         <div key={sub} className="flex items-center gap-1 bg-white px-2 py-1 rounded shadow-sm">
-                          <span className="w-2 h-2 rounded-full" style={{backgroundColor: SUBJECT_COLORS[sub]}}></span>
+                          <span className="w-2 h-2 rounded-full" style={{backgroundColor: GRADE_SUBJECT_COLORS[sub]}}></span>
                           <span className="text-xs font-bold text-slate-600">{sub}: {g.scores[sub]}</span>
                         </div>
                       ))}
@@ -560,7 +572,7 @@
               {/* ②「平均時間」の文字を大きくする修正箇所 */}
               <p className="font-bold text-slate-500 mt-1 flex items-baseline gap-1">
                 平均: <span className="text-2xl md:text-3xl text-indigo-600 ml-1">{formatTimeStr(averageSec)}</span> 
-                <span className="text-xs ml-1">/ {view === 'daily' ? '日' : view === 'weekly' ? '週' : '月'}</span>
+                <span className="text-xs ml-1">/ {view === 'daily' ? '日' : view === 'weekly' ? '月' : '月'}</span>
               </p>
             </div>
             <div className="flex bg-slate-100 rounded-lg p-1 self-end sm:self-auto">
@@ -1243,7 +1255,7 @@
 
         const periodStr = `${start.getMonth() + 1}月${start.getDate()}日〜${end.getMonth() + 1}月${end.getDate()}日`;
         // ※期間送信用のエントリーID（PERIOD_ENTRY_IDの部分）は、実際のGoogleフォームに合わせて変更してください。
-        url += `&entry.855666368=${encodeURIComponent(periodStr)}`;
+        url += `&entry.PERIOD_ENTRY_ID=${encodeURIComponent(periodStr)}`;
 
         if (userProfile.grade) url += `&entry.1119124569=${encodeURIComponent(userProfile.grade)}`;
         if (userProfile.classNum) url += `&entry.183805390=${encodeURIComponent(userProfile.classNum)}`;
@@ -1254,7 +1266,7 @@
         
         // ①日別平均時間のエントリを追加。
         // ※「DAILY_AVG_ENTRY_ID」を、お使いのGoogleフォームの日別平均入力用ID（数字）に変更してください。
-        url += `&entry.1297023481=${encodeURIComponent(formatTimeStr(dailyAvgSec))}`;
+        url += `&entry.DAILY_AVG_ENTRY_ID=${encodeURIComponent(formatTimeStr(dailyAvgSec))}`;
 
         url += `&entry.1599272747=${encodeURIComponent(formatTimeStr(subjectSec['英語']))}`;
         url += `&entry.491252079=${encodeURIComponent(formatTimeStr(subjectSec['国語']))}`;
