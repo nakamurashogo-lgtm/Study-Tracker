@@ -218,17 +218,27 @@
           return days.map(d => {
             const dateStr = getLocalDateString(d);
             const dayRecords = records.filter(r => getLocalDateString(r.date) === dateStr);
-            let total = 0; const subjects = {}; SUBJECTS.forEach(s => subjects[s] = 0);
+            let total = 0; 
+            const subjects = {}; 
+            SUBJECTS.forEach(s => subjects[s] = 0);
+            const materialsDetails = {};
+
             dayRecords.forEach(r => {
               const mat = materials.find(m => m.id === r.materialId);
               const sub = mat ? mat.subject : 'その他';
+              const matName = mat ? mat.name : '不明な教材';
+
               if (subjects[sub] !== undefined) subjects[sub] += r.durationSeconds;
               total += r.durationSeconds;
+
+              if (!materialsDetails[sub]) materialsDetails[sub] = {};
+              if (!materialsDetails[sub][matName]) materialsDetails[sub][matName] = 0;
+              materialsDetails[sub][matName] += r.durationSeconds;
             });
             const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-            return { label: `${d.getMonth()+1}/${d.getDate()}(${dayOfWeek})`, total, subjects };
+            return { label: `${d.getMonth()+1}/${d.getDate()}(${dayOfWeek})`, total, subjects, materialsDetails };
           });
-        } else {
+        } else if (view === 'weekly') {
           const weeks = []; 
           const DISPLAY_WEEKS = 5;
           for(let i = DISPLAY_WEEKS - 1; i >= 0; i--) {
@@ -244,12 +254,22 @@
             const startStr = getLocalDateString(startOfWeek); 
             const endStr = getLocalDateString(endOfWeek);
             const weekRecords = records.filter(r => { const rDate = getLocalDateString(r.date); return rDate >= startStr && rDate <= endStr; });
-            let total = 0; const subjects = {}; SUBJECTS.forEach(s => subjects[s] = 0);
+            let total = 0; 
+            const subjects = {}; 
+            SUBJECTS.forEach(s => subjects[s] = 0);
+            const materialsDetails = {};
+
             weekRecords.forEach(r => {
               const mat = materials.find(m => m.id === r.materialId);
               const sub = mat ? mat.subject : 'その他';
+              const matName = mat ? mat.name : '不明な教材';
+
               if (subjects[sub] !== undefined) subjects[sub] += r.durationSeconds;
               total += r.durationSeconds;
+
+              if (!materialsDetails[sub]) materialsDetails[sub] = {};
+              if (!materialsDetails[sub][matName]) materialsDetails[sub][matName] = 0;
+              materialsDetails[sub][matName] += r.durationSeconds;
             });
             
             let label = '';
@@ -257,11 +277,65 @@
             else if (targetWeekIndex === 1) label = '先週';
             else label = `${startOfWeek.getMonth()+1}/${startOfWeek.getDate()}~`;
 
-            weeks.push({ label, total, subjects });
+            weeks.push({ label, total, subjects, materialsDetails });
           }
           return weeks;
+        } else {
+          // 月別表示のロジック
+          const months = [];
+          const DISPLAY_MONTHS = 5;
+          for(let i = DISPLAY_MONTHS - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - (offset * DISPLAY_MONTHS + i));
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            
+            const startOfMonth = new Date(year, month, 1);
+            const endOfMonth = new Date(year, month + 1, 0);
+            
+            const startStr = getLocalDateString(startOfMonth);
+            const endStr = getLocalDateString(endOfMonth);
+            
+            const monthRecords = records.filter(r => {
+              const rDate = getLocalDateString(r.date);
+              return rDate >= startStr && rDate <= endStr;
+            });
+            
+            let total = 0; 
+            const subjects = {}; 
+            SUBJECTS.forEach(s => subjects[s] = 0);
+            const materialsDetails = {};
+
+            monthRecords.forEach(r => {
+              const mat = materials.find(m => m.id === r.materialId);
+              const sub = mat ? mat.subject : 'その他';
+              const matName = mat ? mat.name : '不明な教材';
+
+              if (subjects[sub] !== undefined) subjects[sub] += r.durationSeconds;
+              total += r.durationSeconds;
+
+              if (!materialsDetails[sub]) materialsDetails[sub] = {};
+              if (!materialsDetails[sub][matName]) materialsDetails[sub][matName] = 0;
+              materialsDetails[sub][matName] += r.durationSeconds;
+            });
+            
+            let label = `${month + 1}月`;
+            if (year !== new Date().getFullYear()) {
+              label = `${year}年${month + 1}月`;
+            }
+            
+            months.push({ label, total, subjects, materialsDetails });
+          }
+          return months;
         }
       }, [records, materials, view, offset]);
+
+      // 平均学習時間の算出
+      const averageSec = useMemo(() => {
+        if (chartData.length === 0) return 0;
+        const total = chartData.reduce((sum, data) => sum + data.total, 0);
+        return Math.floor(total / chartData.length);
+      }, [chartData]);
 
       const maxTotalSec = Math.max(...chartData.map(d => d.total), 3600);
       const maxHours = Math.max(Math.ceil(maxTotalSec / 3600), 3);
@@ -277,26 +351,35 @@
 
       return (
         <div className="bg-white p-4 md:p-6 rounded-3xl shadow-sm border border-slate-100 animate-in fade-in mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800">学習時間の推移</h3>
-            <div className="flex bg-slate-100 rounded-lg p-1">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+            <div>
+              <h3 className="font-bold text-slate-800">学習時間の推移</h3>
+              <p className="text-sm font-bold text-slate-500 mt-1">
+                平均: <span className="text-indigo-600">{formatTimeStr(averageSec)}</span> 
+                <span className="text-xs ml-1">/ {view === 'daily' ? '日' : view === 'weekly' ? '週' : '月'}</span>
+              </p>
+            </div>
+            <div className="flex bg-slate-100 rounded-lg p-1 self-end sm:self-auto">
               <button onClick={()=>setView('daily')} className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${view==='daily'?'bg-white shadow-sm text-indigo-600':'text-slate-500'}`}>日別</button>
               <button onClick={()=>setView('weekly')} className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${view==='weekly'?'bg-white shadow-sm text-indigo-600':'text-slate-500'}`}>週別</button>
+              <button onClick={()=>setView('monthly')} className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${view==='monthly'?'bg-white shadow-sm text-indigo-600':'text-slate-500'}`}>月別</button>
             </div>
           </div>
 
           <div className="flex justify-between items-center mb-6 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
             <button onClick={handlePrev} className="p-2 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1 text-slate-600 text-sm font-bold">
-              <Icon name="chevron-left" size={18} /> <span className="hidden sm:inline">先週</span>
+              <Icon name="chevron-left" size={18} /> <span className="hidden sm:inline">前へ</span>
             </button>
             <span className="text-sm font-bold text-slate-600 tracking-wide">
               {view === 'daily' 
                 ? `${chartData[0].label.split('(')[0]} ～ ${chartData[chartData.length-1].label.split('(')[0]}`
-                : `${offset === 0 ? '直近5週間' : `${chartData[0].label} ～ ${chartData[chartData.length-1].label}`}`
+                : view === 'weekly'
+                  ? (offset === 0 ? '直近5週間' : `${chartData[0].label} ～ ${chartData[chartData.length-1].label}`)
+                  : (offset === 0 ? '直近5ヶ月' : `${chartData[0].label} ～ ${chartData[chartData.length-1].label}`)
               }
             </span>
             <button onClick={handleNext} disabled={offset === 0} className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold ${offset === 0 ? 'text-slate-300' : 'text-slate-600 hover:bg-slate-200'}`}>
-              <span className="hidden sm:inline">翌週</span> <Icon name="chevron-right" size={18} />
+              <span className="hidden sm:inline">次へ</span> <Icon name="chevron-right" size={18} />
             </button>
           </div>
           
@@ -319,14 +402,30 @@
                   const heightPercent = adjustedMaxVal > 0 ? (d.total / adjustedMaxVal) * 100 : 0;
                   return (
                     <div key={i} className="flex flex-col items-center justify-end h-full w-10 sm:w-12 group relative">
-                      <div className="absolute bottom-full mb-2 bg-slate-800 text-white text-xs p-2.5 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        <p className="font-bold text-center border-b border-slate-600 pb-1.5 mb-1.5">{d.label} : {formatTimeStr(d.total)}</p>
-                        {SUBJECTS.map(sub => d.subjects[sub] > 0 && (
-                          <div key={sub} className="flex items-center gap-1.5 mb-1 last:mb-0">
-                            <span className="w-2 h-2 rounded-full" style={{backgroundColor: SUBJECT_COLORS[sub]}}></span>
-                            <span className="font-medium text-[10px]">{sub}: {formatTimeStr(d.subjects[sub])}</span>
-                          </div>
-                        ))}
+                      {/* 詳細ツールチップ */}
+                      <div className="absolute bottom-full mb-2 bg-slate-800 text-white p-2.5 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 w-max max-w-[200px] sm:max-w-xs overflow-hidden">
+                        <p className="font-bold text-xs text-center border-b border-slate-600 pb-1.5 mb-1.5">{d.label} : {formatTimeStr(d.total)}</p>
+                        <div className="space-y-1.5">
+                          {SUBJECTS.map(sub => d.subjects[sub] > 0 && (
+                            <div key={sub} className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: SUBJECT_COLORS[sub]}}></span>
+                                <span className="font-bold text-[11px]">{sub}: {formatTimeStr(d.subjects[sub])}</span>
+                              </div>
+                              {/* 教材ごとの詳細を表示 */}
+                              {d.materialsDetails && d.materialsDetails[sub] && (
+                                <div className="pl-3.5 space-y-0.5">
+                                  {Object.entries(d.materialsDetails[sub]).map(([matName, time]) => (
+                                    <div key={matName} className="text-[10px] text-slate-300 flex justify-between gap-2">
+                                      <span className="truncate">- {matName}</span>
+                                      <span className="flex-shrink-0">{formatTimeStr(time)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="w-full flex flex-col-reverse rounded-t-md overflow-hidden min-h-[4px] shadow-sm cursor-pointer hover:brightness-110 transition-all duration-700 ease-out bg-slate-50" style={{ height: `${heightPercent}%` }}>
@@ -938,7 +1037,7 @@
 
         const periodStr = `${start.getMonth() + 1}月${start.getDate()}日〜${end.getMonth() + 1}月${end.getDate()}日`;
         // ※期間送信用のエントリーID（PERIOD_ENTRY_IDの部分）は、実際のGoogleフォームに合わせて変更してください。
-        url += `&entry.855666368=${encodeURIComponent(periodStr)}`;
+        url += `&entry.PERIOD_ENTRY_ID=${encodeURIComponent(periodStr)}`;
 
         if (userProfile.grade) url += `&entry.1119124569=${encodeURIComponent(userProfile.grade)}`;
         if (userProfile.classNum) url += `&entry.183805390=${encodeURIComponent(userProfile.classNum)}`;
